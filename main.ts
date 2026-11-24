@@ -1,6 +1,6 @@
 // Tiny stack VM for make.fun tiny-stack-vm-01 (ISA.md v1). Faithful port of the
 // reference VM (generator/subject/vm.mjs): same step order, traps and limits.
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 function run(p, inp) {
@@ -108,6 +108,10 @@ const T = {
 const I = process.env.MAKEFUN_INPUT_DIR ?? '/input';
 const O = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 for (const id of readdirSync(I).sort()) {
+  // Instances are directories (each set holds /input/<id>/ with program.bin +
+  // input.bin). A stray non-directory entry must not kill the whole run: the
+  // reference VM answers per instance, so skip it instead of throwing.
+  if (!statSync(join(I, id)).isDirectory()) continue;
   const r = run(new Uint8Array(readFileSync(join(I, id, 'program.bin'))), new Uint8Array(readFileSync(join(I, id, 'input.bin'))));
   mkdirSync(join(O, id), { recursive: true });
   writeFileSync(join(O, id, 'stdout.bin'), r.o);
